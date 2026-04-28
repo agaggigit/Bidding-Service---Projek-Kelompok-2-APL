@@ -30,7 +30,7 @@ Dilarang melakukan *push* atau *commit* langsung ke `main`.
 
 **1. Sinkronisasi main branch:**
 ```bash
-git checkout main
+git switch main
 git pull origin main
 ```
 
