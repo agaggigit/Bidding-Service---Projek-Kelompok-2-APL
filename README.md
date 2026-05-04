@@ -53,11 +53,11 @@ git pull origin main
 
 **2. Pindah ke branch untuk pengembangan fitur:**
 ```bash
-git switch -c feat/[nama-fitur]  # Untuk membuat branch baru
+git switch -c feat/[nama-fitur].[nama developer]  # Untuk membuat branch baru
 ```
 or
 ```bash
-git switch feat/[nama-fitur] # Jika branch sudah ada
+git switch feat/[nama-fitur].[nama developer] # Jika branch sudah ada
 ```
 
 **3. Code:** 
