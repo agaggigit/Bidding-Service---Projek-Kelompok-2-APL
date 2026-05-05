@@ -67,15 +67,21 @@ Setiap kode di-save, perubahan akan langsung disinkronisasi oleh Docker dan dapa
 **4. Commit:**
 ```bash
 git add .
+git status # Pastikan tidak ada unwanted file
 git commit -m "feat: [deskripsi fitur]"
 ```
 
-**5. Push ke repositori:**
+**5. Pull perubahan di main:**
 ```bash
-git push origin feat/[nama-fitur]
+git pull --rebase origin main
 ```
 
-**6. Pull Request (PR):**
+**6. Push ke repositori:**
+```bash
+git push origin feat/[nama-fitur].[nama-developer]
+```
+
+**7. Pull Request (PR):**
 Ajukan PR ke cabang `main`. Wajib mendapatkan persetujuan (*approval*) minimal dari 1 anggota tim sebelum di-*merge*.
 
 ## Penamaan Branch
