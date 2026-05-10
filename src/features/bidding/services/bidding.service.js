@@ -92,6 +92,74 @@ class BiddingService {
 
     return project;
   }
+
+  // Get bids with role-based filtering
+  // Mitra: hanya lihat bid untuk proyek miliknya
+  // Talent: hanya lihat bid yang mereka submit
+  async getBids(userId, userType) {
+    try {
+      let query;
+      let params;
+
+      if (userType === 'mitra') {
+        // Mitra hanya lihat bid dari proyek miliknya
+        // JOIN dengan proyek table untuk filter berdasarkan mitra_id
+        query = `
+          SELECT 
+            b.bid_id,
+            b.proyek_id,
+            b.kelompok_id,
+            b.pendaftar_id,
+            b.status_bid,
+            b.urutan_prioritas,
+            b.dokumen_url,
+            b.waktu_bid,
+            p.judul_proyek,
+            p.status_proyek,
+            m.nama_mitra
+          FROM bid b
+          JOIN proyek p ON b.proyek_id = p.proyek_id
+          JOIN mitra m ON p.mitra_id = m.mitra_id
+          WHERE p.mitra_id = $1
+          ORDER BY b.waktu_bid DESC
+        `;
+        params = [userId];
+
+      } else if (userType === 'talent') {
+        // Talent hanya lihat bid yang mereka submit (berdasarkan kelompok_id)
+        query = `
+          SELECT 
+            b.bid_id,
+            b.proyek_id,
+            b.kelompok_id,
+            b.pendaftar_id,
+            b.status_bid,
+            b.urutan_prioritas,
+            b.dokumen_url,
+            b.waktu_bid,
+            p.judul_proyek,
+            p.status_proyek,
+            m.nama_mitra
+          FROM bid b
+          JOIN proyek p ON b.proyek_id = p.proyek_id
+          JOIN mitra m ON p.mitra_id = m.mitra_id
+          WHERE b.kelompok_id = $1
+          ORDER BY b.waktu_bid DESC
+        `;
+        params = [userId];
+
+      } else {
+        throw new Error(`Invalid user type: ${userType}`);
+      }
+
+      const result = await pool.query(query, params);
+      return result.rows;
+
+    } catch (error) {
+      console.error('Error in getBids:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new BiddingService();

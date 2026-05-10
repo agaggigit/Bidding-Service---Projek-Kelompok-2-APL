@@ -1,6 +1,29 @@
 const biddingService = require('../services/bidding.service');
+const { responseSuccess, responseError } = require('../../../utils/response');
 
 class BiddingController {
+  async getBids(req, res) {
+    try {
+      // Get user info dari auth middleware
+      const userId = req.user.id;
+      const userType = req.user.type;
+
+      // Fetch bids dengan role-based filtering
+      const bids = await biddingService.getBids(userId, userType);
+
+      // Return success response
+      return responseSuccess(res, 'Bids retrieved successfully', {
+        bids,
+        count: bids.length,
+        user_type: userType
+      }, 200);
+
+    } catch (error) {
+      console.error('Error in getBids:', error);
+      return responseError(res, error.message, 500, 'SERVER_ERROR');
+    }
+  }
+
   async createBid(req, res) {
     try {
       const { group_id, project_id, priority, document_url, student_id } = req.body;

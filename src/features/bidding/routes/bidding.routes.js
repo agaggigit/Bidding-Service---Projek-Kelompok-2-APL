@@ -1,6 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const biddingController = require('../controllers/bidding.controller')
+const authMiddleware = require('../../../middleware/auth.middleware')
+
+// GET all bids dengan role-based filtering (Mitra atau Talent)
+// Memerlukan header: X-User-ID dan X-User-Type
+router.get('/', authMiddleware, biddingController.getBids)
 
 router.post('/', biddingController.createBid)
 
