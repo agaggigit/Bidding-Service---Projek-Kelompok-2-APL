@@ -1,69 +1,48 @@
 const negotiatingService = require('../services/negotiating.service');
-const { getDigitCount, isValidDate } = require('../../../helper_function/functions');
+const { getDigitCount } = require('../../../helper_function/functions');
+const { responseSuccess, responseError } = require('../../../utils/response');
 
 class NegotiatingController {
   async createNegotiation(req, res) {
     try {
-      const { bid_id, response_harga, response_waktu, role_ } = req.body;
+      const { bid_id } = req.params;
+      const { response_harga, response_waktu, role_ } = req.body;
 
       // Validation: Check required fields
       if (!bid_id || !response_harga || !response_waktu || !role_) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing required fields: bid_id, response_harga, response_waktu, role_',
-          code: 'VALIDATION_ERROR'
-        });
+        return responseError(res, 'Missing required fields: bid_id (URL param), response_harga, response_waktu, role_', 400, 'VALIDATION_ERROR');
       }
 
       // Check if bid exists
-      const bid = await negotiatingService.getBitDetails(bid_id);
+      const bid = await negotiatingService.getBidDetails(bid_id);
       if (!bid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Bid never exists',
-          code: 'BID_NOT_FOUND'
-        });
+        return responseError(res, 'Bid not found', 404, 'BID_NOT_FOUND');
       }
 
-      // Validation: response_harga must be positive integer
+      // Validation: response_harga must be positive number
       if (!isFinite(response_harga) || response_harga < 0 || getDigitCount(response_harga) > 15) {
-        return res.status(400).json({
-          success: false,
-          message: 'response_harga must be a positive number with up to 15 digits',
-          code: 'INVALID_RESPONSE_HARGA'
-        });
+        return responseError(res, 'response_harga must be a positive number with up to 15 digits', 400, 'INVALID_RESPONSE_HARGA');
       }
 
-      // Validation: response_tanggal must be a valid date
-      if (!isValidDate(response_tanggal)) {
-        return res.status(400).json({
-          success: false,
-          message: 'response_tanggal must be in date format',
-          code: 'INVALID_RESPONSE_TANGGAL'
-        });
+      // Validation: response_waktu must be a valid date string (YYYY-MM-DD)
+      const parsedDate = new Date(response_waktu);
+      if (isNaN(parsedDate.getTime())) {
+        return responseError(res, 'response_waktu must be in valid date format (YYYY-MM-DD)', 400, 'INVALID_RESPONSE_WAKTU');
       }
 
       // Validation: role_ must be either 'Mitra' or 'Kelompok'
       if (!(role_ === 'Mitra' || role_ === 'Kelompok')) {
-        return res.status(400).json({
-          success: false,
-          message: 'role must be either Mitra or Kelompok',
-          code: 'INVALID_ROLE'
-        });
+        return responseError(res, 'role_ must be either Mitra or Kelompok', 400, 'INVALID_ROLE');
       }
 
-      // Check if project is closed
+      // Check if project is closed (bid rejected)
       if (bid.status_bid === 'Rejected') {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot negotiate: project is closed for bidding and negotiation',
-          code: 'PROJECT_CLOSED'
-        });
+        return responseError(res, 'Cannot negotiate: bid has been rejected', 400, 'BID_REJECTED');
       }
 
-      // Create bid with market maker logic
+      // Create negotiation
       const negotiationData = {
-        bit_Id: bit_id,
+        bid_id: bid_id,
         response_harga: response_harga,
         response_waktu: response_waktu,
         role_: role_
@@ -72,56 +51,94 @@ class NegotiatingController {
       const newNegotiation = await negotiatingService.createNegotiation(negotiationData);
 
       // Success response
-      return res.status(201).json({
-        success: true,
-        message: 'Negotiated bid created successfully',
-        data: {
-          nego_id: newNegotiation.nego_id,
-          bid_id: newNegotiation.bid_id,
-          response_harga: newNegotiation.response_harga,
-          response_waktu: newNegotiation.response_waktu,
-          role_: newNegotiation.role_,
-          created_at: newNegotiation.created_at
-        }
-      });
+      return responseSuccess(res, 'Negotiation created successfully', {
+        nego_id: newNegotiation.nego_id,
+        bid_id: newNegotiation.bid_id,
+        response_harga: newNegotiation.response_harga,
+        response_waktu: newNegotiation.response_waktu,
+        role_: newNegotiation.role_,
+        created_at: newNegotiation.created_at
+      }, 201);
 
     } catch (error) {
       console.error('Error in createNegotiation:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        code: 'SERVER_ERROR',
-        error: error.message
-      });
+      return responseError(res, 'Internal server error', 500, 'SERVER_ERROR');
+    }
+  }
+
+  async getAllNegotiations(req, res) {
+    try {
+      const negotiations = await negotiatingService.getAllNegotiations();
+
+      return responseSuccess(res, 'Negotiations retrieved successfully', {
+        negotiations,
+        count: negotiations.length
+      }, 200);
+
+    } catch (error) {
+      console.error('Error in getAllNegotiations:', error);
+      return responseError(res, 'Internal server error', 500, 'SERVER_ERROR');
+    }
+  }
+
+  async getNegotiationsByBidId(req, res) {
+    try {
+      const { bid_id } = req.params;
+
+      if (!bid_id) {
+        return responseError(res, 'bid_id parameter is required', 400, 'VALIDATION_ERROR');
+      }
+
+      // Check if bid exists
+      const bid = await negotiatingService.getBidDetails(bid_id);
+      if (!bid) {
+        return responseError(res, 'Bid not found', 404, 'BID_NOT_FOUND');
+      }
+
+      const negotiations = await negotiatingService.getNegotiationsByBidId(bid_id);
+
+      return responseSuccess(res, 'Negotiations retrieved successfully', {
+        bid_id: parseInt(bid_id),
+        negotiations,
+        count: negotiations.length
+      }, 200);
+
+    } catch (error) {
+      console.error('Error in getNegotiationsByBidId:', error);
+      return responseError(res, 'Internal server error', 500, 'SERVER_ERROR');
     }
   }
 
   async deleteNegotiation(req, res) {
-      const nego= req.body;
-      const nego_id = nego.nego_id;
-      const bid_id = nego.bid_id;
-      try{
-        // Check if negotiation exists
-        const negotiation = await negotiatingService.getNegotiationById(nego_id);
-        if (!negotiation) {
-          return res.status(404).json({
-            success: false,
-            message: 'Negotiation not found',
-            code: 'NEGOTIATION_NOT_FOUND'
-          });
-        }
+    try {
+      const { nego_id, bid_id } = req.body;
 
-        await negotiatingService.deleteNegotiation(nego_id, bid_id);
-      }catch(error){
-        console.error('Error in deleteNegotiation:', error);
-        return res.status(500).json({
-          success: false,
-          message: 'Internal server error',
-          code: 'SERVER_ERROR',
-          error: error.message
-        });
+      if (!nego_id || !bid_id) {
+        return responseError(res, 'Missing required fields: nego_id, bid_id', 400, 'VALIDATION_ERROR');
       }
 
+      // Check if negotiation exists
+      const negotiation = await negotiatingService.getNegotiationById(nego_id);
+      if (!negotiation) {
+        return responseError(res, 'Negotiation not found', 404, 'NEGOTIATION_NOT_FOUND');
+      }
+
+      const deleted = await negotiatingService.deleteNegotiation(nego_id, bid_id);
+
+      return responseSuccess(res, 'Negotiation deleted successfully', {
+        deleted_negotiation: deleted
+      }, 200);
+
+    } catch (error) {
+      console.error('Error in deleteNegotiation:', error);
+
+      // Handle specific business logic errors from service
+      if (error.message.includes('Cannot delete')) {
+        return responseError(res, error.message, 400, 'DELETE_NOT_ALLOWED');
+      }
+
+      return responseError(res, 'Internal server error', 500, 'SERVER_ERROR');
+    }
   }
 }
 
