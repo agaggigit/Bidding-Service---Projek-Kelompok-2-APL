@@ -24,75 +24,69 @@ class BiddingController {
     }
   }
 
+  async getBidById(req, res) {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        return responseError(res, 'Bid ID parameter is required', 400, 'VALIDATION_ERROR');
+      }
+
+      const bid = await biddingService.getBidById(id);
+
+      if (!bid) {
+        return responseError(res, 'Bid not found', 404, 'BID_NOT_FOUND');
+      }
+
+      return responseSuccess(res, 'Bid retrieved successfully', bid, 200);
+
+    } catch (error) {
+      console.error('Error in getBidById:', error);
+      return responseError(res, 'Internal server error', 500, 'SERVER_ERROR');
+    }
+  }
+
   async createBid(req, res) {
     try {
       const { group_id, project_id, priority, document_url, student_id, tawaran_harga, tawaran_waktu } = req.body;
 
       // Validation: Check required fields
       if (!group_id || !project_id || !priority || !document_url || !student_id || !tawaran_harga || !tawaran_waktu) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing required fields: group_id, project_id, priority, document_url, student_id, tawaran_harga, tawaran_waktu',
-          code: 'VALIDATION_ERROR'
-        });
+        return responseError(res, 'Missing required fields: group_id, project_id, priority, document_url, student_id, tawaran_harga, tawaran_waktu', 400, 'VALIDATION_ERROR');
       }
 
       // Validation: Priority must be positive integer
       if (!Number.isInteger(priority) || priority < 1) {
-        return res.status(400).json({
-          success: false,
-          message: 'Priority must be a positive integer',
-          code: 'VALIDATION_ERROR'
-        });
+        return responseError(res, 'Priority must be a positive integer', 400, 'VALIDATION_ERROR');
       }
 
       // Check if project exists
       const project = await biddingService.getProjectDetails(project_id);
       if (!project) {
-        return res.status(400).json({
-          success: false,
-          message: 'Project not found',
-          code: 'PROJECT_NOT_FOUND'
-        });
+        return responseError(res, 'Project not found', 400, 'PROJECT_NOT_FOUND');
       }
 
       // Check if project is closed
       if (project.status_proyek === 'Closed') {
-        return res.status(400).json({
-          success: false,
-          message: 'Project is closed for bidding',
-          code: 'PROJECT_CLOSED'
-        });
+        return responseError(res, 'Project is closed for bidding', 400, 'PROJECT_CLOSED');
       }
 
       // Check if group exists
       const group = await biddingService.getGroupDetails(group_id);
       if (!group) {
-        return res.status(400).json({
-          success: false,
-          message: 'Group not found',
-          code: 'GROUP_NOT_FOUND'
-        });
+        return responseError(res, 'Group not found', 400, 'GROUP_NOT_FOUND');
       }
 
       // Check if student/pendaftar exists
       const student = await biddingService.getStudentDetails(student_id);
       if (!student) {
-        return res.status(400).json({
-          success: false,
-          message: 'Student not found',
-          code: 'STUDENT_NOT_FOUND'
-        });
+        return responseError(res, 'Student not found', 400, 'STUDENT_NOT_FOUND');
       }
 
       // Check if group already bid on this project (uniqueness constraint)
       const existingBid = await biddingService.checkExistingBid(project_id, group_id);
       if (existingBid) {
-        return res.status(409).json({
-          success: false,
-          message: 'Group has already bid on this project',
-          code: 'DUPLICATE_BID'
-        });
+        return responseError(res, 'Group has already bid on this project', 409, 'DUPLICATE_BID');
       }
 
       // Create bid with market maker logic
@@ -112,31 +106,25 @@ class BiddingController {
       await biddingService.updateProjectStatusIfFull(project_id);
 
       // Success response
-      return res.status(201).json({
-        success: true,
-        message: newBid.status_bid === 'Rejected' 
-          ? 'Bid rejected: project quota full' 
-          : 'Bid created successfully',
-        data: {
-          bid_id: newBid.bid_id,
-          group_id: newBid.kelompok_id,
-          project_id: newBid.proyek_id,
-          status: newBid.status_bid,
-          priority: newBid.urutan_prioritas,
-          created_at: newBid.waktu_bid
-        }
-      });
+      const message = newBid.status_bid === 'Rejected' 
+        ? 'Bid rejected: project quota full' 
+        : 'Bid created successfully';
+
+      return responseSuccess(res, message, {
+        bid_id: newBid.bid_id,
+        group_id: newBid.kelompok_id,
+        project_id: newBid.proyek_id,
+        status: newBid.status_bid,
+        priority: newBid.urutan_prioritas,
+        created_at: newBid.waktu_bid
+      }, 201);
 
     } catch (error) {
       console.error('Error in createBid:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        code: 'SERVER_ERROR',
-        error: error.message
-      });
+      return responseError(res, 'Internal server error', 500, 'SERVER_ERROR');
     }
   }
 }
 
 module.exports = new BiddingController();
+
