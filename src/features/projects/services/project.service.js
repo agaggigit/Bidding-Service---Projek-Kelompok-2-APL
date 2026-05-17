@@ -171,8 +171,9 @@ const createProject = async (payload) => {
   return projectRepository.create(projectData)
 }
 
-const getProjects = async () => {
-  return projectRepository.findAll()
+const getProjects = async (queryFilters = {}) => {
+  // Teruskan query parameter dari controller ke repository
+  return projectRepository.findAll(queryFilters)
 }
 
 const getProjectById = async (id) => {

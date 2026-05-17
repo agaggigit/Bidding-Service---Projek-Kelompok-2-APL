@@ -54,16 +54,43 @@ const createProject = async (req, res) => {
 
 const getProjects = async (req, res) => {
   try {
-    const projects = await projectService.getProjects()
+    // 1. Ambil query parameter
+    const { status, mitra_id, search, budget_min, budget_max } = req.query;
+
+    // 2. Buat objek filter dan lakukan parsing tipe data yang aman
+    const filters = {
+      search: typeof search === 'string' ? search.trim() : undefined,
+      status_proyek: typeof status === 'string' ? status.trim() : undefined,
+      
+      // Pastikan ID dan Budget di-convert menjadi angka (atau null/undefined jika kosong)
+      mitra_id: mitra_id ? Number(mitra_id) : undefined,
+      budget_min: budget_min ? Number(budget_min) : undefined,
+      budget_max: budget_max ? Number(budget_max) : undefined
+    };
+
+    // 3. Validasi dasar: Jika user memasukkan sesuatu yang bukan angka pada field numerik
+    if (
+      (mitra_id && isNaN(filters.mitra_id)) ||
+      (budget_min && isNaN(filters.budget_min)) ||
+      (budget_max && isNaN(filters.budget_max))
+    ) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        errors: ['mitra_id, budget_min, and budget_max must be valid numbers']
+      });
+    }
+
+    // 4. Jalankan service dengan filter yang sudah bersih
+    const projects = await projectService.getProjects(filters);
 
     return res.status(200).json({
       message: 'Projects retrieved successfully',
       data: projects
-    })
+    });
   } catch (error) {
-    return sendErrorResponse(res, error)
+    return sendErrorResponse(res, error);
   }
-}
+};
 
 const getProjectById = async (req, res) => {
   try {
