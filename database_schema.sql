@@ -62,12 +62,17 @@ CREATE TABLE bid (
     CONSTRAINT unique_bid_per_kelompok UNIQUE (proyek_id, kelompok_id)
 );
 
+-- Tambahkan ENUM ini di bagian atas (bersama ENUM lainnya)
+CREATE TYPE status_nego_enum AS ENUM ('Pending', 'Accepted', 'Rejected', 'Countered');
+
+-- Lalu ubah definisi tabel negosiasi kamu menjadi seperti ini:
 CREATE TABLE negosiasi(
     nego_id SERIAL PRIMARY KEY,
     bid_id INT NOT NULL,
     response_harga DECIMAL(15, 2) NOT NULL,
     response_waktu DATE NOT NULL,
     role_ VARCHAR(10) NOT NULL CHECK(role_ IN ('Mitra', 'Kelompok')),
+    status status_nego_enum DEFAULT 'Pending', -- 👈 INI TAMBAHANNYA
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_bid FOREIGN KEY(bid_id) REFERENCES bid(bid_id)  
 );
