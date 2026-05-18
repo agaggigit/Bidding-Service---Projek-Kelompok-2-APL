@@ -1,5 +1,6 @@
 const biddingService = require('../services/bidding.service');
 const notificationService = require('../../../utils/notification');
+const trackerService = require('../../../utils/tracker');
 const { responseSuccess, responseError } = require('../../../utils/response');
 
 class BiddingController {
@@ -167,6 +168,28 @@ class BiddingController {
       
       // Trigger notification
       await notificationService.sendBidStatusUpdate(bid.kelompok_id, status, project.judul_proyek);
+
+      // 5. TRIGGER TRACKER (Kelompok 4) - HANYA JIKA ACCEPTED
+      if (status === 'Accepted') {
+        const dealData = {
+          deal_id: `DEAL-${bid.proyek_id}-${bid.kelompok_id}`, // Bikin ID unik ala kadarnya
+          project_id: bid.proyek_id,
+          project_title: project.judul_proyek,
+          mitra_id: project.mitra_id,
+          group_id: bid.kelompok_id,
+          bid_amount: bid.tawaran_harga,
+          deal_amount: bid.tawaran_harga, // Deal awal = tawaran bid
+          status: 'Accepted',
+          timeline: {
+            bid_created_at: bid.waktu_bid,
+            bid_accepted_at: new Date().toISOString(),
+            estimated_completion: bid.tawaran_waktu
+          }
+        };
+
+        // Fire and forget (kita await tapi kalau error sudah di-handle di utility, jadi tidak bikin API crash)
+        await trackerService.sendDealToTracker(dealData);
+      }
 
       return responseSuccess(res, `Bid berhasil di-${status.toLowerCase()}`, {
         bid_id: updated.bid_id,
