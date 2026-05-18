@@ -6,7 +6,8 @@ create project(/api/projects):
     "judul_proyek": "TES AJA 2",
     "deskripsi_proyek": "Buat sistem bidding untuk proyek kampus ramzoy asoy",
     "requirements": "Node.js, Express, PostgreSQL",
-    "kuota_maksimal": 3
+    "kuota_maksimal": 3,
+    "budget"
 }
 
 create bid(/api/bidding):

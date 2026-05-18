@@ -8,6 +8,15 @@ GET http://localhost:3000/
 ### Lihat Semua Proyek (public — no auth required)
 GET http://localhost:3000/api/projects
 
+### Cari Proyek by Keyword (Search)
+GET http://localhost:3000/api/projects?search=React
+
+### Filter Proyek by Status dan Budget
+GET http://localhost:3000/api/projects?status=Open&budget_min=4000000&budget_max=10000000
+
+### Dashboard Mitra: Lihat Proyek Milik Sendiri
+GET http://localhost:3000/api/projects?mitra_id=1
+
 ### Lihat Detail Proyek (public)
 GET http://localhost:3000/api/projects/1
 
@@ -45,6 +54,9 @@ DELETE http://localhost:3000/api/projects/1
 X-User-ID: 1
 X-User-Type: mitra
 
+
+
+
 ### =============================================
 ### BIDDING API
 ### =============================================
@@ -65,12 +77,12 @@ X-User-Type: talent
   "tawaran_waktu": "2026-06-20"
 }
 
-### Lihat Semua Bid — sebagai Mitra
+### Lihat Semua Bid — sebagai Mitra (otomatis terfilter by proyek miliknya)
 GET http://localhost:3000/api/bidding
 X-User-ID: 1
 X-User-Type: mitra
 
-### Lihat Semua Bid — sebagai Talent
+### Lihat Semua Bid — sebagai Talent (otomatis terfilter by kelompoknya)
 GET http://localhost:3000/api/bidding
 X-User-ID: KLP001
 X-User-Type: talent
@@ -79,6 +91,21 @@ X-User-Type: talent
 GET http://localhost:3000/api/bidding/1
 X-User-ID: 1
 X-User-Type: mitra
+
+### UPDATE STATUS BID (ACCEPT/REJECT) - CRITICAL ENDPOINT WITH DB LOCKING
+### Hanya Mitra pemilik proyek yang bisa akses ini
+PUT http://localhost:3000/api/bidding/1/status
+Content-Type: application/json
+X-User-ID: 1
+X-User-Type: mitra
+
+{
+  "status": "Accepted"
+}
+
+
+
+
 
 ### =============================================
 ### NEGOTIATING API
@@ -117,6 +144,17 @@ X-User-Type: mitra
 GET http://localhost:3000/api/negotiating/1
 X-User-ID: 1
 X-User-Type: mitra
+
+### UPDATE STATUS NEGOSIASI (FINAL DEAL ACCEPT/REJECT)
+### Endpoint ini otomatis sinkronisasi harga/waktu ke tabel bid jika Accepted
+PUT http://localhost:3000/api/negotiating/1/status
+Content-Type: application/json
+X-User-ID: 1
+X-User-Type: mitra
+
+{
+  "status": "Accepted"
+}
 
 ### Hapus Negosiasi
 DELETE http://localhost:3000/api/negotiating/
