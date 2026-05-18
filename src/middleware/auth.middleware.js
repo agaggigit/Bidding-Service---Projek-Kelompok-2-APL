@@ -39,7 +39,7 @@ const authMiddleware = (req, res, next) => {
     // Attach user info ke request object
     // Ini bisa diakses di controller dengan: req.user.id, req.user.type
     req.user = {
-      id: userId,
+      id: parseInt(userId, 10),
       type: userType.toLowerCase()
     };
 
